@@ -1,0 +1,24 @@
+version: '3.0'
+
+volumes:
+  db-data:
+    driver: local
+
+networks:
+  banking:
+    driver: bridge
+services:
+  postgres:
+    image: 'postgres:15.1-alpine'
+    ports:
+      - "5437:5432"
+    env_file:
+     - .env
+    command:
+     - "postgres"
+     - "-c"
+     - "wal_level=logical"
+    networks:
+    - banking
+    volumes:
+    - db-data:/var/lib/postgresql/data
