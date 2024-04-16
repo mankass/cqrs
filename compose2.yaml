@@ -1,0 +1,52 @@
+version: '3.6'
+
+services:
+  bff-web:
+    container_name: bff-web
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bff-web:latest
+    environment:
+      - JAVA_TOOL_OPTIONS=-javaagent:/etc/opentelemetry-agent.jar
+      - OTEL_TRACES_EXPORTER=logging
+      - OTEL_LOGS_EXPORTER=logging
+      - OTEL_METRICS_EXPORTER=logging
+      - OTEL_SERVICE_NAME=bff
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger-all-in-one:4318
+      - SERVER_PORT= 8181
+    depends_on:
+      - jaeger-all-in-one
+  keycloak:
+    container_name: keycloak
+    image: quay.io/keycloak/keycloak:22.0.5
+    restart: always
+    ports:
+      - "8083:8080"
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_HEALTH_ENABLED=true
+      - KC_METRICS_ENABLED=true
+      - KC_DB=dev-file
+    entrypoint: [ "/opt/keycloak/bin/kc.sh", "start-dev" ]
+  jaeger-all-in-one:
+    image: jaegertracing/all-in-one:latest
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    restart: always
+    ports:
+      - "16686:16686"
+      - "4318"
+  postgres:
+    hostname: postgres
+    container_name: postgres
+    env_file:
+      - .env
+    image: 'postgres:15.1-alpine'
+    ports:
+      - "5437:5432"
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
